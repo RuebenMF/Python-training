@@ -51,12 +51,11 @@ def clean_903_table(df: pd.DataFrame, collection_end: pd.Timestamp) -> pd.DataFr
 			lambda ethnicity: EthnicSubcatgories[ethnicity].value
 		)
 
-	# make age column
+	# make age column and age buckets column
 	if "DOB_dt" in clean_df.columns:
 		clean_df["AGE"] = clean_df["DOB_dt"].apply(
 			lambda dob: relativedelta(dt1=collection_end, dt2=dob).normalized().years
 		)
 		clean_df["AGE_BUCKETS"] = clean_df["AGE"].apply(calculate_age_buckets)
 
-	# TODO add age buckets column
 	return clean_df
