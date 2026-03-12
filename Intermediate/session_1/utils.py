@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from config_903 import DateCols, EthnicSubcatgories
 from dateutil.relativedelta import relativedelta
 
@@ -25,10 +26,6 @@ def calculate_age_buckets(age):
 		return "e) 16 years and over"
 	else:
 		return "f) Age error"
-
-
-
-
 
 def clean_903_table(df: pd.DataFrame, collection_end: pd.Timestamp) -> pd.DataFrame:
 	'''
@@ -59,3 +56,31 @@ def clean_903_table(df: pd.DataFrame, collection_end: pd.Timestamp) -> pd.DataFr
 		clean_df["AGE_BUCKETS"] = clean_df["AGE"].apply(calculate_age_buckets)
 
 	return clean_df
+
+def group_calculation(df, column, measure_name):
+	'''
+	A function to group as df by input column, outputs with count
+	and percentage to a dataframe with renamed columns.
+	'''
+	grouped = df.groupby(column).size()
+	grouped = grouped.to_frame(f'{measure_name} - Count').reset_index()
+	grouped = grouped.rename(columns={column:'Value'})
+
+	grouped[f'{measure_name} - Percentage'] = (grouped[f'{measure_name} - Count'] / 
+													grouped[f'{measure_name} - Count'].sum()) * 100
+	
+	return grouped
+
+def time_difference(start_col, end_col, business_days=False):
+	'''
+	A function find the difference in days between two dates. Optionally returns working days instead of calendar days.
+	'''
+	if business_days:
+		time_diff = np.busday_count(
+			start_col.values.astype("datetime64[D]"),
+			end_col.values.astype("datetime64[D]")
+		)
+	else:
+		time_diff = end_col - start_col
+		time_diff = time_diff / pd.Timedelta(days=1)
+	return time_diff.astype('int')

@@ -1,15 +1,16 @@
 import pandas as pd
 from sqlalchemy import (
-    create_engine,
-    inspect,
-    text,
-    select,
-    MetaData,
-    Table,
+	create_engine,
+	inspect,
+	text,
+	select,
+	MetaData,
+	Table,
 )
 
-from utils import clean_903_table
+from utils import clean_903_table, group_calculation, time_difference
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 # Session variables
 filepath = "/workspaces/Python-training/Intermediate/session_1/data/903_database.db"
@@ -31,20 +32,30 @@ metadata_903 = MetaData()
 dfs = {}
 
 for table in table_names:
-    current_table = Table(table, metadata_903, autoload_with = engine_903)
-    with engine_903.connect() as con:
-        stmt = select(current_table)
-        result = con.execute(stmt).fetchall()
-    dfs[table] = pd.DataFrame(result)
+	current_table = Table(table, metadata_903, autoload_with = engine_903)
+	with engine_903.connect() as con:
+		stmt = select(current_table)
+		result = con.execute(stmt).fetchall()
+	dfs[table] = pd.DataFrame(result)
 
 for key, df in dfs.items():
-    dfs[key] = clean_903_table(df, collection_end)
+	dfs[key] = clean_903_table(df, collection_end)
 
 # Uncomment to check reading dataframes
 # print(dfs.keys())
 # print(dfs['header'])
 
-grouped = dfs['header'].groupby(['ETHNICITY']).size()
-grouped = grouped.toframe('Count')
+# dict to store measure outputs
+measures = {}
 
-print(grouped)
+measures["Header by ethnicity"] = group_calculation(dfs['header'], 'ETHNICITY', 'Header - Ethncities')
+
+measures["Header by age"] = group_calculation(dfs['header'], 'AGE_BUCKETS', 'Header - Age')
+
+#dfs['missing']['MISSING_DURATION'] = dfs['missing'].apply(
+#	lambda x: relativedelta(x['MIS_END_dt'], x['MIS_START_dt']).normalized().days, axis=1
+#)
+
+output = time_difference(dfs['missing']['MIS_START_dt'],dfs['missing']['MIS_END_dt'])
+print(output)
+#print(dfs['missing'])
