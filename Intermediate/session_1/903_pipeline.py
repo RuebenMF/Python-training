@@ -37,11 +37,14 @@ for table in table_names:
         result = con.execute(stmt).fetchall()
     dfs[table] = pd.DataFrame(result)
 
+for key, df in dfs.items():
+    dfs[key] = clean_903_table(df, collection_end)
+
 # Uncomment to check reading dataframes
 # print(dfs.keys())
 # print(dfs['header'])
 
-for key, df in dfs.items():
-    dfs[key] = clean_903_table(df, collection_end)
+grouped = dfs['header'].groupby(['ETHNICITY']).size()
+grouped = grouped.toframe('Count')
 
-print(dfs['header'])
+print(grouped)

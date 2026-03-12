@@ -20,7 +20,7 @@ def calculate_age_buckets(age):
 	elif age < 10:
 		return "c) 5 to 9 years"
 	elif age < 16:
-		return "d) 10 to 16 years"
+		return "d) 10 to 15 years"
 	elif age >= 16:
 		return "e) 16 years and over"
 	else:
