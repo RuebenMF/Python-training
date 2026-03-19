@@ -1,14 +1,21 @@
 import pandas as pd
 from sqlalchemy import (
-	create_engine,
-	inspect,
-	text,
-	select,
-	MetaData,
-	Table,
+    create_engine,
+    inspect,
+    text,
+    select,
+    MetaData,
+    Table,
 )
 
-from utils import clean_903_table, group_calculation, time_difference
+from utils import (
+    clean_903_table,
+    group_calculation,
+    time_difference,
+    multiples_same_event,
+    group_calculation_year,
+    appears_on_both,
+)
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -32,14 +39,14 @@ metadata_903 = MetaData()
 dfs = {}
 
 for table in table_names:
-	current_table = Table(table, metadata_903, autoload_with = engine_903)
-	with engine_903.connect() as con:
-		stmt = select(current_table)
-		result = con.execute(stmt).fetchall()
-	dfs[table] = pd.DataFrame(result)
+    current_table = Table(table, metadata_903, autoload_with=engine_903)
+    with engine_903.connect() as con:
+        stmt = select(current_table)
+        result = con.execute(stmt).fetchall()
+    dfs[table] = pd.DataFrame(result)
 
 for key, df in dfs.items():
-	dfs[key] = clean_903_table(df, collection_end)
+    dfs[key] = clean_903_table(df, collection_end)
 
 # Uncomment to check reading dataframes
 # print(dfs.keys())
@@ -48,14 +55,42 @@ for key, df in dfs.items():
 # dict to store measure outputs
 measures = {}
 
-measures["Header by ethnicity"] = group_calculation(dfs['header'], 'ETHNICITY', 'Header - Ethncities')
+measures["Header by ethnicity"] = group_calculation(
+    dfs["header"], "ETHNICITY", "Header - Ethncities"
+)
 
-measures["Header by age"] = group_calculation(dfs['header'], 'AGE_BUCKETS', 'Header - Age')
+measures["Header by age"] = group_calculation(
+    dfs["header"], "AGE_BUCKETS", "Header - Age"
+)
 
-#dfs['missing']['MISSING_DURATION'] = dfs['missing'].apply(
-#	lambda x: relativedelta(x['MIS_END_dt'], x['MIS_START_dt']).normalized().days, axis=1
-#)
+# dfs['missing']['MISSING_DURATION'] = dfs['missing'].apply(
+# 	lambda x: relativedelta(x['MIS_END_dt'], x['MIS_START_dt']).normalized().days, axis=1
+# )
 
-output = time_difference(dfs['missing']['MIS_START_dt'],dfs['missing']['MIS_END_dt'])
+# output = time_difference(dfs['missing']['MIS_START_dt'],dfs['missing']['MIS_END_dt'])
+# print(output)
+
+dfs["missing"]["MISSING_DURATION"] = time_difference(
+    dfs["missing"]["MIS_START_dt"], dfs["missing"]["MIS_END_dt"], business_days=True
+)
+
+# print(dfs['missing'])
+
+measures["Multiple episodes"] = multiples_same_event(
+    dfs["episodes"], col_name="Number of Episodes"
+)
+
+dfs["episodes"]["DECOM YEAR"] = dfs["episodes"]["DECOM_dt"].dt.year
+
+measures["Episodes starting per year"] = group_calculation(
+    dfs["episodes"], "DECOM YEAR", "Measures starting per year"
+)
+
+measures["Placements by year"] = group_calculation_year(
+    dfs["episodes"], "DECOM YEAR", "PLACE", "Placements in a year"
+)
+
+output = appears_on_both(
+    dfs["episodes"], dfs["missing"], "CYP with episodes who have been missing"
+)
 print(output)
-#print(dfs['missing'])
